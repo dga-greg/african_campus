@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using CampusLife.Core.Content;
+using CampusLife.Core.Npcs;
+using CampusLife.Runtime.Npc;
 using UnityEngine;
 
 namespace CampusLife.Runtime.World
@@ -18,6 +20,9 @@ namespace CampusLife.Runtime.World
 
         public static GameObject Build(CampusArea area, WorldBuildContext ctx)
         {
+            PlazaSeats.Clear();
+            FieldSeats.Clear();
+            ShuttleSeats.Clear();
             var root = WorldKit.Group("Area_Campus", ctx.WorldRoot);
             var statics = WorldKit.Group("Static", root);
             // Trees, benches and small props never move, so they are static-batched too.
@@ -37,6 +42,7 @@ namespace CampusLife.Runtime.World
             BuildPlaza(kit, statics, props, loc, occupied);
             BuildKioskAndShuttle(kit, statics, props, ctx, loc, occupied);
             BuildStreetLights(kit, lamps, ctx);
+            BuildResidentPlaces(kit, statics, ctx, occupied);
             BuildTrees(kit, props, occupied);
 
             // Spawn points and NPC posts.
@@ -51,6 +57,7 @@ namespace CampusLife.Runtime.World
             BuildOrientationBanner(kit, statics);
 
             StaticBatchingUtility.Combine(statics.gameObject);
+            ctx.Population.BakeArea(AreaId, root, new Bounds(new Vector3(0f, 2f, 0f), new Vector3(190f, 14f, 190f)));
             return root.gameObject;
         }
 
@@ -190,7 +197,6 @@ namespace CampusLife.Runtime.World
                 kit.Box(s, "Lecture_Windows", c + new Vector3(-13.03f, y, 0f), new Vector3(0.08f, 1.6f, 30f), Palette.Glass, collider: false, smoothness: 0.8f);
                 kit.Box(s, "Lecture_Accent", c + new Vector3(-13.05f, y + 1.15f, 0f), new Vector3(0.06f, 0.25f, 31f), Palette.Terracotta, collider: false);
             }
-            kit.Box(s, "Lecture_Shutter", c + new Vector3(-13.06f, 1.6f, 0f), new Vector3(0.06f, 3.2f, 4f), Palette.Metal, collider: false);
             WorldKit.Text(s, "LECTURE THEATRE COMPLEX", c + new Vector3(-13.1f, 10.6f, 0f), 0.75f, Palette.SignText, -90f);
             occupied.Add(R(c.x, c.z, 32f, 40f));
             loc.AddMapFeature("Lecture Theatre Complex", R(c.x, c.z, 26f, 34f), MapFeatureKind.Building);
@@ -204,10 +210,14 @@ namespace CampusLife.Runtime.World
             for (int floor = 0; floor < 4; floor++)
             {
                 float y = 2.6f + floor * 3.4f;
-                kit.Box(s, "Hostel_Balcony", c + new Vector3(11.4f, y - 1f, 0f), new Vector3(0.8f, 0.15f, 34f), Palette.Cream, collider: false);
-                kit.Box(s, "Hostel_Rail", c + new Vector3(11.75f, y - 0.5f, 0f), new Vector3(0.08f, 0.9f, 34f), Palette.Cream, collider: false);
+                if (floor > 0)
+                {
+                    kit.Box(s, "Hostel_Balcony", c + new Vector3(11.4f, y - 1f, 0f), new Vector3(0.8f, 0.15f, 34f), Palette.Cream, collider: false);
+                    kit.Box(s, "Hostel_Rail", c + new Vector3(11.75f, y - 0.5f, 0f), new Vector3(0.08f, 0.9f, 34f), Palette.Cream, collider: false);
+                }
                 for (float z = -15f; z <= 15.1f; z += 3f)
-                    kit.Box(s, "Hostel_Window", c + new Vector3(11.03f, y, z), new Vector3(0.06f, 1.5f, 1.2f), Palette.Glass, collider: false, smoothness: 0.8f);
+                    if (floor > 0 || Mathf.Abs(z) > 3f)
+                        kit.Box(s, "Hostel_Window", c + new Vector3(11.03f, y, z), new Vector3(0.06f, 1.5f, 1.2f), Palette.Glass, collider: false, smoothness: 0.8f);
             }
             WorldKit.Text(s, "UNITY HALL", c + new Vector3(11.1f, 14.1f, 0f), 0.9f, Palette.SignText, 90f);
             occupied.Add(R(c.x, c.z, 28f, 42f));
@@ -233,7 +243,7 @@ namespace CampusLife.Runtime.World
             }
             // Spectator benches along the north touchline (sittable).
             for (int i = -2; i <= 2; i++)
-                Bench(kit, props, new Vector3(c.x + i * 6f, 0f, c.z + 14f), 180f);
+                foreach (var seat in Bench(kit, props, new Vector3(c.x + i * 6f, 0f, c.z + 14f), 180f)) FieldSeats.Add(seat);
             occupied.Add(R(c.x, c.z, 44f, 32f));
             loc.AddMapFeature("Sports field", R(c.x, c.z, 40f, 24f), MapFeatureKind.Sports);
         }
@@ -295,7 +305,7 @@ namespace CampusLife.Runtime.World
                 float ang = 15f + i * 60f;
                 if (Mathf.Abs(Mathf.DeltaAngle(ang, 180f)) < 20f || Mathf.Abs(Mathf.DeltaAngle(ang, 0f)) < 20f) ang += 30f;
                 var pos = c + Quaternion.Euler(0f, ang, 0f) * Vector3.forward * 10.5f;
-                Bench(kit, props, pos, ang + 180f);
+                foreach (var seat in Bench(kit, props, pos, ang + 180f)) PlazaSeats.Add(seat);
             }
             occupied.Add(R(c.x, c.z, 28f, 28f));
             loc.AddMapFeature("Akwaaba Plaza", R(c.x, c.z, 26f, 26f), MapFeatureKind.Green);
@@ -324,6 +334,7 @@ namespace CampusLife.Runtime.World
             kit.Box(s, "Kiosk_SignBoard", k + new Vector3(0f, 3.0f, -0.68f), new Vector3(3.6f, 0.45f, 0.05f), Palette.Cream, collider: false);
 
             var akosua = ctx.Npcs.Spawn(Ids.NpcAkosua, s.parent, k + new Vector3(0f, 0.1f, 0.9f), 180f);
+            akosua.Range = 3.4f; // reachable from the front of the queue
             loc.Register(Ids.LocationKiosk, AreaId, akosua.transform.position, "Auntie Akosua's kiosk");
             occupied.Add(R(k.x, k.z, 6f, 6f));
             loc.AddMapFeature("Kiosk", R(k.x, k.z + 0.5f, 3.6f, 2.6f), MapFeatureKind.Building);
@@ -336,7 +347,7 @@ namespace CampusLife.Runtime.World
                 kit.Box(s, "Shuttle_Post", st + new Vector3(x, 1.3f, 0.85f), new Vector3(0.1f, 2.6f, 0.1f), Palette.Metal);
             kit.Box(s, "Shuttle_Sign", st + new Vector3(2.6f, 2.1f, 0.9f), new Vector3(0.9f, 0.6f, 0.06f), Palette.Gold, collider: false);
             WorldKit.Text(s, "AMU SHUTTLE", st + new Vector3(2.6f, 2.1f, 0.94f), 0.14f, Palette.SignText, 0f);
-            Bench(kit, props, st + new Vector3(0f, 0f, -0.4f), 0f);
+            foreach (var seat in Bench(kit, props, st + new Vector3(0f, 0f, -0.4f), 0f)) ShuttleSeats.Add(seat);
             occupied.Add(R(st.x, st.z, 6f, 4f));
             loc.AddMapFeature("Shuttle stop", R(st.x, st.z, 4.6f, 2f), MapFeatureKind.Building);
         }
@@ -431,8 +442,8 @@ namespace CampusLife.Runtime.World
             WorldKit.CullWhenSmall(t.gameObject, 0.01f);
         }
 
-        /// <summary>Wooden bench whose seat faces local +Z, with a sittable seat.</summary>
-        public static void Bench(WorldKit kit, Transform parent, Vector3 pos, float yaw)
+        /// <summary>Wooden bench whose seat faces local +Z, with two sittable places.</summary>
+        public static SeatInteractable[] Bench(WorldKit kit, Transform parent, Vector3 pos, float yaw)
         {
             var b = WorldKit.Group("Bench", parent, pos, yaw);
             kit.Box(b, "Seat", new Vector3(0f, 0.45f, 0f), new Vector3(1.8f, 0.07f, 0.48f), Palette.WoodLight, collider: false);
@@ -442,8 +453,128 @@ namespace CampusLife.Runtime.World
             var col = b.gameObject.AddComponent<BoxCollider>();
             col.center = new Vector3(0f, 0.5f, -0.04f);
             col.size = new Vector3(1.8f, 1f, 0.5f);
-            SeatInteractable.Create(b, new Vector3(0f, 0f, 0.05f), 0f, 0.48f);
+            var seats = new[]
+            {
+                SeatInteractable.Create(b, new Vector3(-0.45f, 0f, 0.05f), 0f, 0.48f),
+                SeatInteractable.Create(b, new Vector3(0.45f, 0f, 0.05f), 0f, 0.48f),
+            };
             WorldKit.CullWhenSmall(b.gameObject, 0.008f);
+            return seats;
+        }
+
+        static readonly List<SeatInteractable> PlazaSeats = new List<SeatInteractable>();
+        static readonly List<SeatInteractable> FieldSeats = new List<SeatInteractable>();
+        static readonly List<SeatInteractable> ShuttleSeats = new List<SeatInteractable>();
+
+        /// <summary>
+        /// Registers where residents go and what they do there: seats, chat
+        /// groups, the kiosk queue, routes, and the doors of buildings without
+        /// interiors yet (residents walk in and out of them).
+        /// </summary>
+        static void BuildResidentPlaces(WorldKit kit, Transform s, WorldBuildContext ctx, List<Rect> occupied)
+        {
+            var slots = ctx.Slots;
+            const string A = AreaId;
+
+            // Plaza: bench seats and two chat circles.
+            var plaza = new Vector3(0f, 0f, -15f);
+            foreach (var seat in PlazaSeats) slots.AddSeat(PlaceIds.Plaza, A, seat);
+            slots.AddGroup(PlaceIds.Plaza, A, plaza + new Vector3(7.5f, 0.05f, 0f), 4, 1.05f, 0);
+            slots.AddGroup(PlaceIds.Plaza, A, plaza + new Vector3(-7.5f, 0.05f, 0f), 4, 1.05f, 1);
+            slots.AddGroup(PlaceIds.Plaza, A, plaza + new Vector3(0f, 0.05f, 7.2f), 3, 1.0f, 2);
+            slots.SetAccess(PlaceIds.Plaza, plaza + new Vector3(3.5f, 0f, 0f));
+
+            // Kiosk: a queue facing the counter and spots to eat nearby.
+            var queue = new List<Vector3>();
+            for (int i = 0; i < 6; i++) queue.Add(new Vector3(12f, 0.05f, -62.3f - i * 0.9f));
+            slots.SetQueue(PlaceIds.Kiosk, queue, 0f);
+            slots.AddStand(PlaceIds.Kiosk, A, new Vector3(15.6f, 0.05f, -60.8f), 250f);
+            slots.AddStand(PlaceIds.Kiosk, A, new Vector3(16.6f, 0.05f, -62.4f), 290f);
+            slots.AddStand(PlaceIds.Kiosk, A, new Vector3(15.9f, 0.05f, -64.2f), 320f);
+            slots.AddStand(PlaceIds.Kiosk, A, new Vector3(8.2f, 0.05f, -62.6f), 70f);
+            slots.AddStand(PlaceIds.Kiosk, A, new Vector3(8.6f, 0.05f, -64.4f), 40f);
+            slots.SetAccess(PlaceIds.Kiosk, new Vector3(12f, 0f, -64.5f));
+
+            // Sports field: laps around the pitch and the spectator benches.
+            var f = new Vector3(-38f, 0.06f, -26f);
+            slots.AddRoute(PlaceIds.SportsField, A, new[]
+            {
+                f + new Vector3(-18f, 0f, -10.5f), f + new Vector3(0f, 0f, -10.5f), f + new Vector3(18f, 0f, -10.5f), f + new Vector3(18f, 0f, 0f),
+                f + new Vector3(18f, 0f, 10.5f), f + new Vector3(0f, 0f, 10.5f), f + new Vector3(-18f, 0f, 10.5f), f + new Vector3(-18f, 0f, 0f),
+            }, 8);
+            foreach (var seat in FieldSeats) slots.AddSeat(PlaceIds.SportsField, A, seat);
+            slots.SetAccess(PlaceIds.SportsField, f + new Vector3(0f, 0f, 12.5f));
+
+            // Shuttle stop.
+            foreach (var seat in ShuttleSeats) slots.AddSeat(PlaceIds.ShuttleStop, A, seat);
+            slots.AddStand(PlaceIds.ShuttleStop, A, new Vector3(21.4f, 0.05f, -54.4f), 10f);
+            slots.AddStand(PlaceIds.ShuttleStop, A, new Vector3(26.6f, 0.05f, -54.4f), 350f);
+            slots.SetAccess(PlaceIds.ShuttleStop, new Vector3(24f, 0f, -54f));
+
+            // West lawn: friends sit on the grass.
+            occupied.Add(R(-19f, 18f, 16f, 26f));
+            slots.AddGroup(PlaceIds.Lawn, A, new Vector3(-18f, 0.02f, 9f), 3, 0.95f, 0, SlotKind.GroundSeat);
+            slots.AddGroup(PlaceIds.Lawn, A, new Vector3(-22f, 0.02f, 20f), 3, 0.95f, 1, SlotKind.GroundSeat);
+            slots.AddGroup(PlaceIds.Lawn, A, new Vector3(-16f, 0.02f, 27f), 2, 0.8f, 2, SlotKind.GroundSeat);
+            slots.AddStand(PlaceIds.Lawn, A, new Vector3(-13.5f, 0.02f, 16f), 260f, -1, SlotKind.GroundSeat);
+            slots.AddStand(PlaceIds.Lawn, A, new Vector3(-24f, 0.02f, 12f), 120f, -1, SlotKind.GroundSeat);
+            slots.SetAccess(PlaceIds.Lawn, new Vector3(-14f, 0f, 15f));
+
+            // Security booth and patrol.
+            slots.AddStand(PlaceIds.SecurityPost, A, new Vector3(8.4f, 0.05f, -83.6f), 270f);
+            slots.SetAccess(PlaceIds.SecurityPost, new Vector3(8.4f, 0f, -82f));
+            var patrol = new[]
+            {
+                new Vector3(4.6f, 0f, -80f), new Vector3(4.6f, 0f, -57f), new Vector3(9f, 0f, -42f), new Vector3(10.5f, 0f, -15f),
+                new Vector3(6.5f, 0f, 33f), new Vector3(-6.5f, 0f, 33f), new Vector3(-10.5f, 0f, -15f), new Vector3(-9f, 0f, -42f),
+                new Vector3(-4.6f, 0f, -57f), new Vector3(-4.6f, 0f, -80f),
+            };
+            slots.AddRoute(PlaceIds.PatrolRoute, A, patrol, 2);
+            slots.SetAccess(PlaceIds.PatrolRoute, patrol[0]);
+
+            // Cleaner's sweeping route around the plaza and along the walkway.
+            var sweep = new List<Vector3>();
+            for (int i = 0; i < 8; i++) sweep.Add(plaza + Quaternion.Euler(0f, i * 45f + 22f, 0f) * Vector3.forward * 12.3f);
+            sweep.Add(new Vector3(1.5f, 0f, -34f));
+            sweep.Add(new Vector3(-1.5f, 0f, -42f));
+            sweep.Add(new Vector3(1.5f, 0f, 2f));
+            sweep.Add(new Vector3(-1.5f, 0f, 20f));
+            slots.AddRoute(PlaceIds.SweepRoute, A, sweep.ToArray(), 1);
+            slots.SetAccess(PlaceIds.SweepRoute, new Vector3(0f, 0f, -28f));
+
+            // Buildings residents walk in and out of (their interiors arrive in later phases).
+            BuildDoorway(kit, s, new Vector3(-30.93f, 0f, 20f), 90f, Palette.DarkWood, "UNITY HALL",
+                "Read the hall notice", "Unity Hall — residents only. Freshers' room allocation is handled by the hall office during Week 1.");
+            slots.SetAccess(PlaceIds.Hostel, new Vector3(-29.4f, 0f, 20f));
+            BuildDoorway(kit, s, new Vector3(28.94f, 0f, 5f), -90f, Palette.Glass, "LECTURE HALLS",
+                "Read the notice board", "Lecture Theatre Complex — first-year lectures begin after course registration. Timetables will be posted here.");
+            slots.SetAccess(PlaceIds.LectureComplex, new Vector3(27.4f, 0f, 5f));
+
+            slots.SetAccess(PlaceIds.OffCampus, new Vector3(0f, 0f, -86.6f));
+            slots.SetAccess(PlaceIds.Library, LibraryDoor);
+        }
+
+        /// <summary>
+        /// A closed double door on a facade (local +Z = outward) with a readable
+        /// notice beside it, so the doorway explains itself instead of looking like a broken door.
+        /// </summary>
+        static void BuildDoorway(WorldKit kit, Transform s, Vector3 wallPoint, float yaw, Color door, string sign, string label, string notice)
+        {
+            var g = WorldKit.Group("Doorway_" + sign, s, wallPoint, yaw);
+            kit.Box(g, "Frame", new Vector3(0f, 1.45f, 0.03f), new Vector3(2.8f, 2.9f, 0.08f), Palette.Gold, collider: false);
+            kit.Box(g, "Doors", new Vector3(0f, 1.4f, 0.08f), new Vector3(2.4f, 2.8f, 0.06f), door, collider: false, smoothness: 0.7f);
+            kit.Box(g, "Split", new Vector3(0f, 1.4f, 0.12f), new Vector3(0.05f, 2.8f, 0.02f), Palette.Metal, collider: false);
+            kit.Box(g, "Canopy", new Vector3(0f, 3.1f, 0.7f), new Vector3(3.6f, 0.15f, 1.4f), Palette.Terracotta, collider: false);
+            kit.Box(g, "Step", new Vector3(0f, 0.06f, 0.6f), new Vector3(3.2f, 0.12f, 1.2f), Palette.PavingWarm, collider: false);
+            WorldKit.Text(g, sign, new Vector3(0f, 3.45f, 0.12f), 0.32f, Palette.SignText);
+            kit.Box(g, "NoticeBoard", new Vector3(2.2f, 1.5f, 0.1f), new Vector3(1.1f, 0.8f, 0.06f), Palette.Cream, collider: false);
+            kit.Box(g, "NoticeFrame", new Vector3(2.2f, 1.5f, 0.07f), new Vector3(1.2f, 0.9f, 0.04f), Palette.Wood, collider: false);
+            var info = new GameObject("Notice").AddComponent<InfoInteractable>();
+            info.transform.SetParent(g, false);
+            info.transform.localPosition = new Vector3(2.2f, 1f, 0.6f);
+            info.Label = label;
+            info.Message = notice;
+            info.Range = 2.2f;
         }
     }
 }

@@ -15,9 +15,11 @@ namespace CampusLife.Core.Dialogue
         readonly GameSession _session;
         readonly List<DialogueChoice> _available = new List<DialogueChoice>();
         readonly List<string> _feedback = new List<string>();
+        readonly Dictionary<string, string> _variables = new Dictionary<string, string>(StringComparer.Ordinal);
 
         public DialogueGraph Graph { get; }
-        public string NpcId => Graph.NpcId;
+        /// <summary>NPC whose relationship record this conversation reads and changes.</summary>
+        public string NpcId { get; }
         public string NpcDisplayName { get; }
         public DialogueNode Current { get; private set; }
         public bool IsFinished => Current == null;
@@ -30,11 +32,14 @@ namespace CampusLife.Core.Dialogue
 
         public event Action<DialogueRunner> Ended;
 
-        public DialogueRunner(DialogueGraph graph, GameSession session, string npcDisplayName)
+        /// <param name="npcId">Conversation partner; defaults to the graph's NPC (shared ambient graphs pass it explicitly).</param>
+        public DialogueRunner(DialogueGraph graph, GameSession session, string npcDisplayName, string npcId = null)
         {
             Graph = graph ?? throw new ArgumentNullException(nameof(graph));
             _session = session ?? throw new ArgumentNullException(nameof(session));
-            NpcDisplayName = npcDisplayName ?? graph.NpcId;
+            NpcId = npcId ?? graph.NpcId;
+            if (string.IsNullOrEmpty(NpcId)) throw new ArgumentException("Dialogue needs an NPC id.", nameof(npcId));
+            NpcDisplayName = npcDisplayName ?? NpcId;
         }
 
         public void Start()
@@ -53,13 +58,21 @@ namespace CampusLife.Core.Dialogue
         /// <summary>Text for the current node with {player}, {npc} and {program} filled in.</summary>
         public string CurrentText => Current == null ? string.Empty : FormatText(Current.Text);
 
+        /// <summary>
+        /// Sets a text variable used as {key} in node and choice text (e.g. what an
+        /// NPC is doing right now). Variables only change wording, never game state.
+        /// </summary>
+        public void SetVariable(string key, string value) => _variables[key] = value ?? string.Empty;
+
         public string FormatText(string text)
         {
             var program = AcademicPrograms.Find(_session.Profile.programId);
-            return text
+            text = text
                 .Replace("{player}", _session.Profile.displayName)
                 .Replace("{npc}", NpcDisplayName)
                 .Replace("{program}", program != null ? program.Name : _session.Profile.programId);
+            foreach (var kv in _variables) text = text.Replace("{" + kv.Key + "}", kv.Value);
+            return text;
         }
 
         /// <summary>True when the current node offers no selectable choice and can only be continued.</summary>

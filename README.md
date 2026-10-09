@@ -2,14 +2,14 @@
 
 An original 3D university life simulation set at **Akwaaba Metropolitan University (AMU)**, a fictional university in Ghana. Players create a student, walk a living campus, meet people who remember them, manage money in Ghana cedis, and (in later phases) progress through four academic years to graduation.
 
-> **Current milestone: Phase 1 — 3D Foundation.** See [docs/PHASE1.md](docs/PHASE1.md) for exactly what is implemented and how it was verified, and [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
+> **Current milestone: Phase 2 — Living Campus** (on top of Phase 1 — 3D Foundation). See [docs/PHASE1.md](docs/PHASE1.md) and [docs/PHASE2.md](docs/PHASE2.md) for exactly what is implemented and how it was verified, and [docs/ROADMAP.md](docs/ROADMAP.md) for what comes next.
 
 ## Verification status (read this first)
 
 | What | Status |
 |---|---|
-| Game rules (`CampusLife.Core`: clock, wallet/ledger, purchases, dialogue engine, NPC memory, objectives, save system, movement/camera maths) | **54 NUnit tests passing** under .NET 8 (`tools/CoreTests`) |
-| Unity runtime scripts (player, camera, world builder, NPCs, UI, save integration) + PlayMode tests | **Compile cleanly** against UnityEngine 2021.3 reference assemblies (`tools/UnityCompileCheck`), warnings-as-errors |
+| Game rules (`CampusLife.Core`: clock, wallet/ledger, purchases, dialogue engine, NPC memory, objectives, save system, movement/camera maths, resident roster, schedules, campus simulation) | **72 NUnit tests passing** under .NET 8 (`tools/CoreTests`) |
+| Unity runtime scripts (player, camera, world builder, NPCs and residents, NavMesh bake, UI, save integration) + PlayMode tests | **Compile cleanly** against UnityEngine 2021.3 reference assemblies (`tools/UnityCompileCheck`), warnings-as-errors |
 | Running the game in the Unity Editor / building WebGL, Android, iOS, Windows | **Not yet done.** The development environment used to write this code could not download the Unity Editor (blocked by network policy), so the game has not been played, profiled or built. The first step on a machine with Unity is to open the project, run *Campus Life Africa → Set Up Project*, press Play, and run the PlayMode tests. |
 | Input System (new) code path, Editor scripts | Written but **not compiled** here (those assemblies are not on NuGet). |
 

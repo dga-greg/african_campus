@@ -29,7 +29,7 @@ namespace CampusLife.Tests
         [Test]
         public void PauseIsReferenceCountedByReason()
         {
-            var clock = new GameClock(0);
+            var clock = new GameClock(0, minutesPerRealSecond: 1);
             clock.Pause("menu");
             clock.Pause("dialogue");
             clock.Tick(10);

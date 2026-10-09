@@ -4,9 +4,9 @@
 
 | Suite | Where | Runs | Covers |
 |---|---|---|---|
-| Core/EditMode | `CampusLifeAfrica/Assets/CampusLife/Tests/EditMode` | `dotnet test tools/CoreTests/CoreTests.csproj` **and** Unity Test Runner (EditMode) | Clock & pausing, money formatting, wallet ledger (duplicates, overdrafts, tampering), atomic purchases, inventory, JSON serializer (precision, escaping, malformed input), save service (round-trip, checksum, backup recovery, too-new saves, migrations, atomic file writes, unique transaction ids across reloads), dialogue engine and all Phase 1 content (validation, full orientation journey, alternative paths, kiosk purchases, memories), relationships, objectives, profile validation, movement/camera/interaction maths |
+| Core/EditMode | `CampusLifeAfrica/Assets/CampusLife/Tests/EditMode` | `dotnet test tools/CoreTests/CoreTests.csproj` **and** Unity Test Runner (EditMode) | Clock & pausing, money formatting, wallet ledger (duplicates, overdrafts, tampering), atomic purchases, inventory, JSON serializer (precision, escaping, malformed input), save service (round-trip, checksum, backup recovery, too-new saves, migrations, atomic file writes, unique transaction ids across reloads), dialogue engine and all Phase 1 content (validation, full orientation journey, alternative paths, kiosk purchases, memories), relationships, objectives, profile validation, movement/camera/interaction maths; **Phase 2:** roster, schedules (validity, determinism, variety, roles, weekdays, guard coverage, walking-time fit), campus simulation (travel, arrival, snapping, day/night density), queue, deterministic RNG, ambient dialogue and per-resident memory |
 | Unity compile check | `tools/UnityCompileCheck` | `dotnet build` | All runtime scripts + PlayMode tests against UnityEngine 2021.3 reference assemblies |
-| PlayMode smoke | `CampusLifeAfrica/Assets/CampusLife/Tests/PlayMode` | Unity Test Runner (PlayMode) only | New game spawn and allowance, walking and staying grounded, entering the library, climbing stairs to the mezzanine, exiting, talking to Mr. Darko (card, clock pause), save → load inside the library, sitting/standing, camera wall collision, kiosk purchase charging the wallet |
+| PlayMode smoke | `CampusLifeAfrica/Assets/CampusLife/Tests/PlayMode` | Unity Test Runner (PlayMode) only | New game spawn and allowance, walking and staying grounded, entering the library, climbing stairs to the mezzanine, exiting, talking to Mr. Darko (card, clock pause), save → load inside the library, sitting/standing, camera wall collision, kiosk purchase charging the wallet; **Phase 2:** NavMesh bake, residents appearing within limits, travellers making progress, interior/exterior unloading, resident memory, slot exclusivity, kiosk queue order |
 
 CI (`.github/workflows/ci.yml`) runs the first two on every push.
 
@@ -29,3 +29,13 @@ Desktop (Editor and WebGL build):
 Mobile (Android/iOS build, or Settings → Touch controls: On):
 13. Left-thumb joystick appears where you touch; right-side swipe turns the camera; buttons do not rotate the camera.
 14. Contextual interact button shows the right label; Walk/Run toggle works; Menu/Map/Student buttons open panels.
+
+Living campus (Phase 2) — turn on Settings → "Show living-campus stats":
+15. After the NavMesh finishes baking (stats show "ready"), students walk from Unity Hall toward the kiosk around 06:20–07:30; a queue forms at the counter and people eat nearby.
+16. Around 07:45 programme groups head into the Lecture Theatre Complex and disappear through its doors; others go to the library or plaza.
+17. The map (M) shows dots moving; the "people out on campus" count rises by day and drops to about one (the night guard) after 23:00.
+18. Two friends meeting on the walkway stop to chat. Sprint into someone: they react with a speech bubble; talk to them afterwards and they mention it.
+19. Introduce yourself to a student; walk past them later and they greet you by name.
+20. Inside the library, residents sit at tables and desks with books; when their schedule changes they walk out of the door.
+21. The guard patrols gate ↔ library; footballers run laps in the evening; the cleaner sweeps the plaza in the morning.
+22. Graphics quality Low/Medium/High changes how many residents have bodies (20/30/40) — check FPS stays on target.

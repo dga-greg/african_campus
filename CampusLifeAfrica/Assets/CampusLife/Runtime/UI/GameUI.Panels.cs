@@ -122,12 +122,12 @@ namespace CampusLife.Runtime.UI
                     foreach (var rel in s.Relationships.All)
                     {
                         known++;
-                        var npc = Phase1Content.FindNpc(rel.NpcId);
+                        var npc = Phase2Content.FindAnyNpc(rel.NpcId);
                         string name = npc != null ? npc.DisplayName : rel.NpcId;
                         string role = npc != null ? npc.Role : "";
                         lines.Add(L($"<b>{name}</b> — {role}   <size=14>affinity {rel.Affinity:+0;-0;0} · trust {rel.Trust:+0;-0;0} · {rel.Conversations} conversation(s)</size>", UiTheme.Body, (rel.Affinity + 100f) / 200f));
                         foreach (var m in rel.Memories)
-                            lines.Add(L($"     • {Phase1Content.DescribeMemory(m.key)}  <i>({new GameClock(m.gameMinute).Format()})</i>", UiTheme.Small));
+                            lines.Add(L($"     • {Phase2Content.DescribeMemory(m.key)}  <i>({new GameClock(m.gameMinute).Format()})</i>", UiTheme.Small));
                     }
                     if (known == 0) lines.Add(L("You haven't met anyone yet. Try talking to the people around campus.", UiTheme.Dim));
                     break;
@@ -198,6 +198,18 @@ namespace CampusLife.Runtime.UI
                 GUI.Label(new Rect(r.center.x - 80f, r.center.y - 12f, 160f, 40f), $"<size=12><b>{f.Label}</b></size>", MapLabel);
             }
 
+            // Residents out on campus right now (students and staff).
+            int outdoors = 0;
+            var residents = Game.Residents;
+            foreach (var state in residents.Sim.States)
+            {
+                if (!residents.TryGetCampusPosition(state, out var rp)) continue;
+                outdoors++;
+                var dot = PointToMap(rp);
+                bool student = state.Profile.Role == CampusLife.Core.Npcs.NpcRole.Student;
+                UiTheme.Tint(new Rect(dot.x - 4f, dot.y - 4f, 8f, 8f), UiTheme.Circle, student ? StudentDot : StaffDot);
+            }
+
             // Objective marker.
             var objective = Game.CurrentObjective;
             if (objective != null && loc.TryGetCampusPosition(objective.TargetLocationId, out var objPos))
@@ -224,10 +236,17 @@ namespace CampusLife.Runtime.UI
             LegendRow(ref ly, lx, lw, UiTheme.Gold, objective != null ? "Current objective" : "No active objective");
             LegendRow(ref ly, lx, lw, new Color(0.98f, 0.76f, 0.1f), "Building you can enter");
             LegendRow(ref ly, lx, lw, new Color(0.86f, 0.8f, 0.7f), "Other buildings");
+            LegendRow(ref ly, lx, lw, StudentDot, "Students");
+            LegendRow(ref ly, lx, lw, StaffDot, "Staff");
+            GUI.Label(new Rect(lx, ly, lw, 28f), $"{outdoors} people out on campus", UiTheme.Dim);
+            ly += 30f;
             ly += 12f;
             if (objective != null) GUI.Label(new Rect(lx, ly, lw, 90f), UiTheme.Fix(objective.Text), UiTheme.Small);
             GUI.Label(new Rect(lx, area.yMax - 60f, lw, 60f), "North is up. The main gate is at the south edge.", UiTheme.Dim);
         }
+
+        static readonly Color StudentDot = new Color(0.3f, 0.85f, 0.95f);
+        static readonly Color StaffDot = new Color(1f, 0.55f, 0.2f);
 
         static GUIStyle _mapLabel;
         static GUIStyle MapLabel

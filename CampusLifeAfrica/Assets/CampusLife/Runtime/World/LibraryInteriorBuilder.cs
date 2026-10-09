@@ -1,4 +1,6 @@
 using CampusLife.Core.Content;
+using CampusLife.Core.Npcs;
+using CampusLife.Runtime.Npc;
 using UnityEngine;
 
 namespace CampusLife.Runtime.World
@@ -69,7 +71,7 @@ namespace CampusLife.Runtime.World
 
             // Reading tables with chairs.
             foreach (float z in new[] { -6f, -1.5f })
-                ReadingTable(kit, s, props, new Vector3(-5f, 0f, z));
+                ReadingTable(kit, s, props, new Vector3(-5f, 0f, z), ctx.Slots);
 
             // Ground-floor stacks under the mezzanine.
             for (int row = 0; row < 2; row++)
@@ -93,7 +95,7 @@ namespace CampusLife.Runtime.World
             for (int i = 0; i < 5; i++)
                 Shelf(kit, s, new Vector3(-7f + i * 3.4f, MezzanineTop, 8.5f), 2.4f, 10 + i);
             foreach (float x in new[] { -3f, 3.5f })
-                StudyDesk(kit, s, props, new Vector3(x, MezzanineTop, 5.4f));
+                StudyDesk(kit, s, props, new Vector3(x, MezzanineTop, 5.4f), ctx.Slots);
             WorldKit.Text(s, "QUIET STUDY", new Vector3(0f, MezzanineTop + 2.6f, 8.8f), 0.4f, Palette.SignText, 180f);
 
             // Warm interior lighting.
@@ -112,8 +114,13 @@ namespace CampusLife.Runtime.World
             exit.Label = "Exit to campus";
             exit.Range = 2.4f;
             ctx.Locations.RegisterPortal(AreaId, CampusExteriorBuilder.AreaId, exit.transform.position);
+            // Residents leave through the door; a couple can browse the stacks.
+            ctx.Slots.SetAreaExit(AreaId, root.TransformPoint(new Vector3(0f, 0f, -8f)));
+            ctx.Slots.AddStand(PlaceIds.Library, AreaId, root.TransformPoint(new Vector3(-2f, 0.05f, 3.9f)), 0f);
+            ctx.Slots.AddStand(PlaceIds.Library, AreaId, root.TransformPoint(new Vector3(5f, 0.05f, 3.9f)), 0f);
 
             StaticBatchingUtility.Combine(s.gameObject);
+            ctx.Population.BakeArea(AreaId, root, new Bounds(Origin + new Vector3(0f, 3f, 0f), new Vector3(W + 2f, 10f, D + 2f)));
             return root.gameObject;
         }
 
@@ -154,7 +161,7 @@ namespace CampusLife.Runtime.World
             }
         }
 
-        static void ReadingTable(WorldKit kit, Transform s, Transform props, Vector3 c)
+        static void ReadingTable(WorldKit kit, Transform s, Transform props, Vector3 c, PlaceSlots slots)
         {
             kit.Box(s, "Table", c + new Vector3(0f, 0.74f, 0f), new Vector3(3.2f, 0.06f, 1.4f), Palette.DarkWood);
             foreach (float x in new[] { -1.45f, 1.45f })
@@ -162,22 +169,22 @@ namespace CampusLife.Runtime.World
             kit.Box(props, "Lamp", c + new Vector3(0f, 0.95f, 0f), new Vector3(0.15f, 0.35f, 0.15f), Palette.Green, collider: false);
             foreach (float x in new[] { -0.8f, 0.8f })
             {
-                Chair(kit, props, c + new Vector3(x, 0f, -1.15f), 0f);
-                Chair(kit, props, c + new Vector3(x, 0f, 1.15f), 180f);
+                slots.AddSeat(PlaceIds.Library, AreaId, Chair(kit, props, c + new Vector3(x, 0f, -1.15f), 0f));
+                slots.AddSeat(PlaceIds.Library, AreaId, Chair(kit, props, c + new Vector3(x, 0f, 1.15f), 180f));
             }
         }
 
-        static void StudyDesk(WorldKit kit, Transform s, Transform props, Vector3 c)
+        static void StudyDesk(WorldKit kit, Transform s, Transform props, Vector3 c, PlaceSlots slots)
         {
             kit.Box(s, "StudyDesk", c + new Vector3(0f, 0.74f, 0f), new Vector3(2.6f, 0.06f, 0.9f), Palette.DarkWood);
             kit.Box(s, "StudyDeskPanel", c + new Vector3(0f, 0.37f, 0.4f), new Vector3(2.6f, 0.74f, 0.06f), Palette.DarkWood);
             kit.Box(props, "OpenBook", c + new Vector3(-0.5f, 0.79f, 0f), new Vector3(0.45f, 0.03f, 0.32f), Palette.White, collider: false);
             foreach (float x in new[] { -0.7f, 0.7f })
-                Chair(kit, props, c + new Vector3(x, 0f, -0.85f), 0f);
+                slots.AddSeat(PlaceIds.Library, AreaId, Chair(kit, props, c + new Vector3(x, 0f, -0.85f), 0f));
         }
 
         /// <summary>Chair whose occupant faces local +Z.</summary>
-        static void Chair(WorldKit kit, Transform parent, Vector3 pos, float yaw)
+        static SeatInteractable Chair(WorldKit kit, Transform parent, Vector3 pos, float yaw)
         {
             var g = WorldKit.Group("Chair", parent, pos, yaw);
             kit.Box(g, "Seat", new Vector3(0f, 0.45f, 0f), new Vector3(0.48f, 0.06f, 0.46f), Palette.Wood, collider: false);
@@ -186,7 +193,9 @@ namespace CampusLife.Runtime.World
             col.center = new Vector3(0f, 0.45f, -0.02f);
             col.size = new Vector3(0.48f, 0.9f, 0.46f);
             // Chairs face a table, so the player stands up behind the chair.
-            SeatInteractable.Create(g, new Vector3(0f, 0f, 0.02f), 0f, 0.48f, standOffset: -0.82f).Range = 1.4f;
+            var seat = SeatInteractable.Create(g, new Vector3(0f, 0f, 0.02f), 0f, 0.48f, standOffset: -0.82f);
+            seat.Range = 1.4f;
+            return seat;
         }
     }
 }

@@ -9,8 +9,10 @@ using UnityEngine;
 namespace CampusLife.Runtime.Npc
 {
     /// <summary>
-    /// A conversation partner placed at a post (gate, desk, kiosk). Phase 2
-    /// adds schedule-driven NavMesh movement on top of this component.
+    /// Makes a character talkable. Story NPCs stand at a post and this
+    /// component turns them toward the player; autonomous residents set
+    /// <see cref="ControlsBody"/> to false and let <see cref="ResidentAgent"/>
+    /// handle movement, reacting to the conversation events instead.
     /// </summary>
     public sealed class NpcCharacter : Interactable
     {
@@ -19,6 +21,16 @@ namespace CampusLife.Runtime.Npc
         public NpcDefinition Definition { get; private set; }
         public DialogueGraph Dialogue { get; private set; }
         public CharacterAnimator Animator { get; private set; }
+
+        /// <summary>False when another component (a resident's brain) moves and poses this character.</summary>
+        public bool ControlsBody { get; set; } = true;
+
+        /// <summary>Lets the owner fill dialogue variables (what the NPC is doing now, etc.).</summary>
+        public System.Action<DialogueRunner> ConfigureRunner;
+        public event System.Action<NpcCharacter, Transform> ConversationStarted;
+        public event System.Action<NpcCharacter> ConversationEnded;
+
+        public bool IsTalking => _talking;
 
         float _postYaw;
         float _targetYaw;
@@ -47,21 +59,34 @@ namespace CampusLife.Runtime.Npc
         public void BeginConversation(Transform with)
         {
             _talking = true;
-            Vector3 d = with.position - transform.position;
-            d.y = 0f;
-            if (d.sqrMagnitude > 0.001f) _targetYaw = Quaternion.LookRotation(d).eulerAngles.y;
-            Animator.SetPose(CharacterPose.Talk);
+            if (ControlsBody)
+            {
+                Vector3 d = with.position - transform.position;
+                d.y = 0f;
+                if (d.sqrMagnitude > 0.001f) _targetYaw = Quaternion.LookRotation(d).eulerAngles.y;
+                Animator.SetPose(CharacterPose.Talk);
+            }
+            ConversationStarted?.Invoke(this, with);
         }
 
         public void EndConversation()
         {
             _talking = false;
-            _targetYaw = _postYaw;
-            Animator.SetPose(CharacterPose.Stand);
+            if (ControlsBody)
+            {
+                _targetYaw = _postYaw;
+                Animator.SetPose(CharacterPose.Stand);
+            }
+            ConversationEnded?.Invoke(this);
         }
 
         void Update()
         {
+            if (!ControlsBody)
+            {
+                if (_talking && Animator != null && _player != null) Animator.LookAt(_player.position + Vector3.up * 1.6f);
+                return;
+            }
             float yaw = Mathf.MoveTowardsAngle(transform.eulerAngles.y, _targetYaw, 240f * Time.deltaTime);
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
             if (Animator == null) return;

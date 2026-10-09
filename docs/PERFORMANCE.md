@@ -10,8 +10,10 @@ Targets from the brief: 60 FPS on a mid-range desktop, 30 FPS on supported mid-r
 | Realtime lights | Sun (soft shadows) + 8 street lights | Sun (hard shadows) + 4 | Sun (no shadows) + 0 |
 | Camera far clip | 350 m | 260 m | 180 m |
 | Managed heap | ≤ 512 MB | ≤ 256 MB | ≤ 200 MB |
-| Active NPCs (Phase 2) | 40 full detail | 30 | 20 |
+| Resident bodies (Phase 2, implemented) | 40 within 70 m | 30 within 60 m | 20 within 45 m |
 
 Measures already in place: static batching of all non-moving campus and interior geometry; shared per-colour materials with GPU instancing (SRP Batcher compatible under URP); size-based LOD culling of trees, benches and props; lazy interior construction behind a fade with only one area active; no per-frame allocations in movement, camera or interaction code; procedural meshes reuse Unity's built-in primitives.
 
 Known costs to watch: the IMGUI interface allocates every frame (planned UI Toolkit migration), and each character is ~40 small renderers (to be replaced by skinned meshes with an Animator in later art passes).
+
+Phase 2 additions: residents use detail levels (High = full avoidance and animation, Medium = cheaper avoidance and half-rate animation, Low/Unloaded = no body); body spawning is budgeted (≤ 2 builds and ≤ 5 shows per 0.2 s); the NavMesh is baked asynchronously at load with 0.12 m voxels over 190 × 190 m. **To profile first:** bake time on WebGL (single-threaded) and mobile — raise the voxel size in `NavMeshBaker.AgentSettings()` if it is too slow.

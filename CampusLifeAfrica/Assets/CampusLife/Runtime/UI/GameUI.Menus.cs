@@ -54,7 +54,7 @@ namespace CampusLife.Runtime.UI
             y += 62f;
             if (GameBootstrap.CanQuitApplication && Button(new Rect(x, y, w, 52f), "Quit")) Application.Quit();
 
-            GUI.Label(new Rect(x, _h - 60f, w, 44f), $"v{GameBootstrap.GameVersion} · Phase 1 foundation build · Original fictional university", UiTheme.Dim);
+            GUI.Label(new Rect(x, _h - 60f, w, 44f), $"v{GameBootstrap.GameVersion} · Phase 2 living campus build · Original fictional university", UiTheme.Dim);
         }
 
         // ------------------------------------------------- character creator
@@ -328,7 +328,7 @@ namespace CampusLife.Runtime.UI
         void DrawSettings()
         {
             var s = Game.Settings;
-            var panel = CenterPanel(640f, 640f);
+            var panel = CenterPanel(640f, 680f);
             float x = panel.x + 28f, w = panel.width - 56f, y = panel.y + 22f, lw = 250f, fw = w - lw;
             GUI.Label(new Rect(x, y, w, 40f), "Settings", UiTheme.Heading);
             y += 54f;
@@ -342,6 +342,7 @@ namespace CampusLife.Runtime.UI
             changed |= Toggle(ref y, x, w, "Reduced motion (no camera sway, bob or fades)", ref s.reducedMotion);
             changed |= Toggle(ref y, x, w, "Show objective guide marker", ref s.showGuideMarker);
             changed |= Toggle(ref y, x, w, "Show FPS counter", ref s.showFps);
+            changed |= Toggle(ref y, x, w, "Show living-campus stats", ref s.showSimStats);
 
             GUI.Label(new Rect(x, y + 8f, lw, 30f), "Touch controls", UiTheme.Body);
             changed |= EnumButtons(ref s.touchControls, new Rect(x + lw, y, fw, 42f));

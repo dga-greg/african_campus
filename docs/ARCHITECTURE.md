@@ -10,7 +10,8 @@ Campus Life Africa is split so that the rules of the game can be tested without 
 │  ├─ Player: PlayerInputReader · PlayerController · InteractionDetector             │
 │  ├─ CameraSystem: ThirdPersonCameraRig                                             │
 │  ├─ Characters: CharacterRigBuilder · CharacterVisual · CharacterAnimator          │
-│  ├─ Npc: NpcFactory · NpcCharacter          Dialogue: DialogueController           │
+│  ├─ Npc: NpcFactory · NpcCharacter · ResidentPopulation · ResidentAgent · PlaceSlots│
+│  │       NavMeshBaker · SpeechBubble        Dialogue: DialogueController           │
 │  ├─ Lighting: DayNightCycle                 Rendering: MaterialLibrary, profiles   │
 │  ├─ Infrastructure: SaveSystem (file / browser storage) · SettingsStore            │
 │  └─ UI: GameUI (menus, creator, HUD, dialogue, dashboard, map, touch controls)     │
@@ -22,7 +23,8 @@ Campus Life Africa is split so that the rules of the game can be tested without 
 │ Dialogue/DialogueGraph, DialogueRunner · Social/RelationshipBook (NPC memory)      │
 │ Narrative/NarrativeFlags, ObjectiveTracker · Player/PlayerProfile, programmes      │
 │ Save/SaveGame, SaveService, SaveMigrator, storage · Serialization/FieldJson        │
-│ Simulation/MotionMath, CameraOrbit, InteractionScoring · Content/Phase1Content     │
+│ Simulation/MotionMath, CameraOrbit, InteractionScoring · Content/Phase1/2Content   │
+│ Npcs/CampusSimulation, ScheduleGenerator, PlaceCatalog, SlotQueue, Deterministic…  │
 └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -50,11 +52,23 @@ Campus Life Africa is split so that the rules of the game can be tested without 
 
 **UI.** Phase 1 uses Unity's immediate-mode GUI on a scaled 1280×720 virtual canvas, with generated rounded textures. It is dependency-free and works on every platform. Planned migration: UI Toolkit, once screens stabilise (see roadmap).
 
+## NPC architecture (Phase 2)
+
+The six concerns named in the brief are separate pieces:
+
+1. **Schedule planning:** `ScheduleGenerator` (Core) produces a deterministic day plan per resident from role, programme, traits, weekday and day number.
+2. **Goal selection:** `CampusSimulation` (Core) turns the plan into "be at place X doing Y" and runs abstract travel at walking speed. It is the authority for where everyone *should* be, and it needs no save data.
+3. **Navigation:** `ResidentAgent` + `NavMeshAgent` on a NavMesh baked at runtime (`NavMeshBaker`). A body that physically arrives first tells the simulation (`NotifyArrived`).
+4. **Animation:** `CharacterAnimator` body poses plus a separate hands layer (phone/read/eat/sweep), with update rate set by detail level.
+5. **Social interactions:** `PlaceSlots` (seats, chat circles, queues, routes), friend chat stops, reactions to the player, and ambient dialogue graphs filled with live variables.
+6. **Persistent NPC memory:** the same `RelationshipBook` as the story NPCs, keyed by the resident's stable id.
+
+`ResidentPopulation` decides each 0.2 s which residents get bodies (detail levels, distance with hysteresis, population cap, spawn budget) and re-derives everything after time jumps.
+
 ## Execution order
 
 `PlayerInputReader` (−500) → interaction, player, dialogue (0) → `GameBootstrap` (50) → `ThirdPersonCameraRig` (100). Each key press is consumed by one system; `PlayerController.ControlEnabledFrame` and `DialogueController.LastEndedFrame` stop the same press from also triggering the next system (e.g. Esc that leaves a conversation does not also open the pause menu).
 
 ## Planned services (later phases)
 
-- **NPC simulation (Phase 2):** schedule planner → goal selection → NavMesh navigation (runtime-baked `NavMeshBuilder` data or `com.unity.ai.navigation`) → animation; simulation LOD (high/medium/low/unloaded) with pooling; NPC schedules as Core data so they are unit-testable.
 - **Backend (Phase 7–8):** ASP.NET Core + PostgreSQL for accounts, cloud saves (same envelope format, server-side validation, conflict detection by `saveId` + `savedUtc`), opt-in leaderboards validated server-side, account deletion and data export. The game remains fully playable offline.

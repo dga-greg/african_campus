@@ -16,6 +16,7 @@ namespace CampusLife.Runtime.Infrastructure
         public bool reducedMotion;
         public bool showGuideMarker = true;
         public bool showFps;
+        public bool showSimStats;
         public GraphicsProfile graphics = GraphicsProfile.Medium;
         public TouchControlsMode touchControls = TouchControlsMode.Auto;
         public float uiScale = 1f;

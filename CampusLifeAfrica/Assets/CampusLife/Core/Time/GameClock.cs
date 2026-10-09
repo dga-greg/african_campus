@@ -18,6 +18,12 @@ namespace CampusLife.Core.Time
         public const int MinutesPerDay = 24 * MinutesPerHour;
         public const int DaysPerWeek = 7;
 
+        /// <summary>
+        /// Default pace: 0.3 game minutes per real second (an 80-minute day). Slow
+        /// enough that a resident can walk across campus between schedule blocks.
+        /// </summary>
+        public const double DefaultMinutesPerRealSecond = 0.3;
+
         readonly HashSet<string> _pauseReasons = new HashSet<string>();
         double _totalMinutes;
 
@@ -27,7 +33,7 @@ namespace CampusLife.Core.Time
         public event Action<GameClock> HourChanged;
         public event Action<GameClock> DayChanged;
 
-        public GameClock(double startMinutes = 7 * MinutesPerHour, double minutesPerRealSecond = 1.0)
+        public GameClock(double startMinutes = 7 * MinutesPerHour, double minutesPerRealSecond = DefaultMinutesPerRealSecond)
         {
             if (startMinutes < 0) throw new ArgumentOutOfRangeException(nameof(startMinutes));
             _totalMinutes = startMinutes;

@@ -53,7 +53,8 @@ namespace CampusLife.Runtime.Dialogue
             Partner = npc;
             _player = player;
             _startedFrame = Time.frameCount;
-            Runner = new DialogueRunner(npc.Dialogue, session, npc.Definition.DisplayName);
+            Runner = new DialogueRunner(npc.Dialogue, session, npc.Definition.DisplayName, npc.Definition.Id);
+            npc.ConfigureRunner?.Invoke(Runner);
             session.Clock.Pause(PauseReason);
             player.ControlEnabled = false;
             player.FaceTowards(npc.transform.position);

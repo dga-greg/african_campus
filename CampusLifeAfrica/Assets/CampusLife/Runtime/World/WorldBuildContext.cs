@@ -12,6 +12,8 @@ namespace CampusLife.Runtime.World
         public NpcFactory Npcs;
         public DayNightCycle Lighting;
         public Transform WorldRoot;
+        public PlaceSlots Slots;
+        public ResidentPopulation Population;
     }
 
     /// <summary>Original colour palette for AMU: warm laterite, cream plaster, greenery and kente-inspired accents.</summary>

@@ -18,6 +18,9 @@ namespace CampusLife.Runtime.Rendering
             public float CameraFarClip;
             public int MaxStreetLights;
             public bool StreetLightShadows;
+            /// <summary>Most residents with a 3D body at once, and how far away bodies appear.</summary>
+            public int MaxResidents;
+            public float ResidentRadius;
         }
 
         public static GraphicsProfile RecommendedForPlatform()
@@ -32,11 +35,11 @@ namespace CampusLife.Runtime.Rendering
             switch (p)
             {
                 case GraphicsProfile.Low:
-                    return new Profile { TargetFrameRate = 30, ShadowDistance = 25f, SunShadows = LightShadows.None, LodBias = 0.6f, CameraFarClip = 180f, MaxStreetLights = 0, StreetLightShadows = false };
+                    return new Profile { TargetFrameRate = 30, ShadowDistance = 25f, SunShadows = LightShadows.None, LodBias = 0.6f, CameraFarClip = 180f, MaxStreetLights = 0, StreetLightShadows = false, MaxResidents = 20, ResidentRadius = 45f };
                 case GraphicsProfile.Medium:
-                    return new Profile { TargetFrameRate = 60, ShadowDistance = 45f, SunShadows = LightShadows.Hard, LodBias = 1f, CameraFarClip = 260f, MaxStreetLights = 4, StreetLightShadows = false };
+                    return new Profile { TargetFrameRate = 60, ShadowDistance = 45f, SunShadows = LightShadows.Hard, LodBias = 1f, CameraFarClip = 260f, MaxStreetLights = 4, StreetLightShadows = false, MaxResidents = 30, ResidentRadius = 60f };
                 default:
-                    return new Profile { TargetFrameRate = 60, ShadowDistance = 80f, SunShadows = LightShadows.Soft, LodBias = 1.5f, CameraFarClip = 350f, MaxStreetLights = 8, StreetLightShadows = false };
+                    return new Profile { TargetFrameRate = 60, ShadowDistance = 80f, SunShadows = LightShadows.Soft, LodBias = 1.5f, CameraFarClip = 350f, MaxStreetLights = 8, StreetLightShadows = false, MaxResidents = 40, ResidentRadius = 70f };
             }
         }
 

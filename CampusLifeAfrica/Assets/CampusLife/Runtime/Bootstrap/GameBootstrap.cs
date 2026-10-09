@@ -2,6 +2,8 @@ using System;
 using CampusLife.Core.Content;
 using CampusLife.Core.Economy;
 using CampusLife.Core.Narrative;
+using CampusLife.Core.Npcs;
+using CampusLife.Core.Time;
 using CampusLife.Core.Player;
 using CampusLife.Core.Save;
 using CampusLife.Core.Session;
@@ -35,7 +37,7 @@ namespace CampusLife.Runtime
     [DefaultExecutionOrder(50)]
     public sealed class GameBootstrap : MonoBehaviour
     {
-        public const string GameVersion = "0.1.0";
+        public const string GameVersion = "0.2.0";
         const float AutosaveIntervalSeconds = 180f;
         const string MenuPauseReason = "menu";
 
@@ -58,6 +60,8 @@ namespace CampusLife.Runtime
         public GameUI UI { get; private set; }
         public NpcFactory Npcs { get; private set; }
         public GuideBeacon Beacon { get; private set; }
+        public ResidentPopulation Residents { get; private set; }
+        public PlaceSlots Slots { get; private set; }
 
         public GameSession Session { get; private set; }
         public GameFlowState State { get; private set; } = GameFlowState.MainMenu;
@@ -72,6 +76,8 @@ namespace CampusLife.Runtime
         Light _sun;
         float _autosaveTimer;
         bool _autosavePending;
+        // Residents keep living in the main-menu background on their own clock.
+        double _menuMinutes = 16.5 * GameClock.MinutesPerHour;
         AppearanceData _builtAppearance;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -103,6 +109,9 @@ namespace CampusLife.Runtime
             var dialogues = Phase1Content.CreateDialogues();
             Npcs = new NpcFactory(_materials, Phase1Content.Npcs, dialogues) { Player = Player.transform };
 
+            Slots = new PlaceSlots();
+            Residents = gameObject.AddComponent<ResidentPopulation>();
+
             Areas = gameObject.AddComponent<AreaManager>();
             Areas.Player = Player;
             Areas.CameraRig = CameraRig;
@@ -118,7 +127,9 @@ namespace CampusLife.Runtime
             Dialogue.Feedback += UI.Toast;
 
             BuildWorld();
+            InitialiseResidents();
             Beacon = GuideBeacon.Create(_materials, transform);
+            InfoInteractable.Shown += UI.Toast;
 
             Areas.AreaEntered += OnAreaEntered;
             ApplySettings();
@@ -127,6 +138,7 @@ namespace CampusLife.Runtime
 
         void OnDestroy()
         {
+            if (UI != null) InfoInteractable.Shown -= UI.Toast;
             if (Instance == this) Instance = null;
         }
 
@@ -159,6 +171,12 @@ namespace CampusLife.Runtime
             Input = playerGo.AddComponent<PlayerInputReader>();
             Player = playerGo.AddComponent<PlayerController>();
             Interactions = playerGo.AddComponent<InteractionDetector>();
+            // Residents' local avoidance steers around the player.
+            var obstacle = playerGo.AddComponent<UnityEngine.AI.NavMeshObstacle>();
+            obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Capsule;
+            obstacle.center = new Vector3(0f, 0.9f, 0f);
+            obstacle.height = 1.8f;
+            obstacle.radius = 0.35f;
             var animator = playerGo.AddComponent<CharacterAnimator>();
             Player.Animator = animator;
 
@@ -186,6 +204,8 @@ namespace CampusLife.Runtime
                 Npcs = Npcs,
                 Lighting = DayNight,
                 WorldRoot = worldRoot,
+                Slots = Slots,
+                Population = Residents,
             };
             var campus = new CampusArea { Id = CampusExteriorBuilder.AreaId, DisplayName = "AMU Campus", IsInterior = false };
             campus.Root = CampusExteriorBuilder.Build(campus, _buildContext);
@@ -201,6 +221,25 @@ namespace CampusLife.Runtime
                 DefaultSpawn = "entrance",
                 Builder = a => LibraryInteriorBuilder.Build(a, _buildContext),
             });
+        }
+
+        void InitialiseResidents()
+        {
+            var places = PlaceIds.CreateCatalog(LibraryInteriorBuilder.AreaId);
+            foreach (var place in places.All)
+            {
+                if (Slots.TryGetAccess(place.Id, out var p)) places.SetAccessPoint(place.Id, p.x, p.z);
+                else Debug.LogError($"[Residents] Place '{place.Id}' has no access point in the world.");
+            }
+            Residents.Initialise(places, Slots, _materials);
+            Residents.Now = () => Session != null ? Session.Clock.TotalMinutes : _menuMinutes;
+            Residents.MinutesPerRealSecond = () => Session != null ? Session.Clock.MinutesPerRealSecond : GameClock.DefaultMinutesPerRealSecond;
+            Residents.Session = () => Session;
+            Residents.ObserverPosition = () => Player.gameObject.activeInHierarchy ? Player.transform.position : CameraRig.transform.position;
+            Residents.ObserverArea = () => Areas.Current != null ? Areas.Current.Id : CampusExteriorBuilder.AreaId;
+            Residents.Player = Player.transform;
+            Residents.PlayerSpeed = () => Player.CurrentSpeed;
+            Residents.RunThreshold = () => Player.Locomotion.WalkSpeed + 0.6f;
         }
 
         /// <summary>Rebuilds the player's modular character from appearance data.</summary>
@@ -387,6 +426,8 @@ namespace CampusLife.Runtime
             CameraRig.ApplyUserSettings(Settings.lookSensitivity, Settings.invertY, Settings.reducedMotion);
             var profile = GraphicsProfiles.Apply(Settings.graphics, CameraRig.Camera, _sun);
             DayNight.SetMaxStreetLights(profile.MaxStreetLights);
+            Residents.MaxActive = profile.MaxResidents;
+            Residents.SpawnRadius = profile.ResidentRadius;
             Input.TouchControlsEnabled = SettingsStore.TouchControlsActive(Settings);
         }
 
@@ -395,6 +436,7 @@ namespace CampusLife.Runtime
         void Update()
         {
             bool playing = State == GameFlowState.Playing && Session != null;
+            if (Session == null) _menuMinutes += Time.deltaTime * GameClock.DefaultMinutesPerRealSecond;
             if (playing)
             {
                 Session.Clock.Tick(Time.deltaTime);

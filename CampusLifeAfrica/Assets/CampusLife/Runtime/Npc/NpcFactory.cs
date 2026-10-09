@@ -42,6 +42,12 @@ namespace CampusLife.Runtime.Npc
             body.center = new Vector3(0f, 0.9f, 0f);
             body.height = 1.8f;
             body.radius = 0.3f;
+            // Residents' navigation steers around stationary story characters.
+            var obstacle = go.AddComponent<UnityEngine.AI.NavMeshObstacle>();
+            obstacle.shape = UnityEngine.AI.NavMeshObstacleShape.Capsule;
+            obstacle.center = body.center;
+            obstacle.height = 1.8f;
+            obstacle.radius = 0.35f;
 
             var visual = CharacterRigBuilder.Build(go.transform, def.Appearance, _materials);
             var animator = go.AddComponent<CharacterAnimator>();

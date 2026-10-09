@@ -70,8 +70,19 @@ namespace CampusLife.Runtime.UI
             if (!touch)
                 GUI.Label(new Rect(_w - 420f, _h - 34f, 410f, 26f), "<b>Tab</b> Dashboard   <b>M</b> Map   <b>Shift</b> Run   <b>Esc</b> Menu", UiTheme.Dim);
 
+            if (Game.Settings.showSimStats) DrawSimStats();
+
             if (Time.unscaledTime < _saveIndicatorUntil)
                 GUI.Label(new Rect(16f, _h - 34f, 200f, 26f), "Saving…", UiTheme.Dim);
+        }
+
+        void DrawSimStats()
+        {
+            var r = Game.Residents;
+            string nav = r.IsNavigationReady(Game.Areas.Current.Id) ? "ready" : $"baking {r.NavigationProgress(Game.Areas.Current.Id) * 100f:0}%";
+            string text = $"<b>Living campus</b>\nResidents: {r.Sim.States.Count} · outdoors {r.Sim.CountOutdoors()}\n" +
+                          $"3D bodies: {r.ActiveCount} (high {r.HighCount}, medium {r.MediumCount}) · limit {r.MaxActive}\nNavMesh: {nav}";
+            GUI.Box(new Rect(16f, 120f, 330f, 92f), text, UiTheme.Toast);
         }
 
         void DrawDialogue()
