@@ -56,9 +56,9 @@ namespace CampusLife.Runtime.UI
             // Interaction prompt.
             bool touch = Game.Input.TouchControlsEnabled;
             string prompt = null;
-            if (Game.Player.IsSeated) prompt = "Stand up";
+            if (Game.Player.IsSeated && Game.Overlay == Overlay.None) prompt = "Stand up";
             else if (Game.Interactions.Current != null) prompt = Game.Interactions.Current.Prompt;
-            if (prompt != null && !touch)
+            if (prompt != null && !touch && Game.Overlay == Overlay.None)
             {
                 var content = new GUIContent("      " + prompt);
                 float pw = UiTheme.Prompt.CalcSize(content).x + 20f;

@@ -10,6 +10,8 @@ namespace CampusLife.Runtime.World
         public Transform SitPose;
         public Transform StandPose;
         public float SeatHeight = 0.48f;
+        /// <summary>Room the seat belongs to ("LT1", "LT2", "library"), used for lectures, exams and study.</summary>
+        public string RoomId;
         public bool Occupied { get; set; }
 
         public override string Prompt => "Sit down";

@@ -19,12 +19,13 @@ namespace CampusLife.Core.Npcs
         public const string PatrolRoute = "patrol_route";
         public const string SweepRoute = "sweep_route";
 
-        public static PlaceCatalog CreateCatalog(string libraryArea)
+        /// <param name="lectureArea">Interior area of the Lecture Theatre Complex, or null to keep it hidden.</param>
+        public static PlaceCatalog CreateCatalog(string libraryArea, string lectureArea = null)
         {
             const string campusArea = CampusArea;
             return new PlaceCatalog()
                 .Add(new PlaceDefinition(Hostel, "Unity Hall", null))
-                .Add(new PlaceDefinition(LectureComplex, "Lecture Theatre Complex", null))
+                .Add(new PlaceDefinition(LectureComplex, "Lecture Theatre Complex", lectureArea))
                 .Add(new PlaceDefinition(OffCampus, "Off campus", null))
                 .Add(new PlaceDefinition(Library, "Nkabom Library", libraryArea))
                 .Add(new PlaceDefinition(Plaza, "Akwaaba Plaza", campusArea))

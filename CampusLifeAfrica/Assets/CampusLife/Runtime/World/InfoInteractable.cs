@@ -11,9 +11,11 @@ namespace CampusLife.Runtime.World
 
         public string Label = "Read notice";
         public string Message;
+        /// <summary>Optional live text (e.g. the player's own timetable); overrides <see cref="Message"/>.</summary>
+        public Func<string> MessageProvider;
 
         public override string Prompt => Label;
 
-        public override void Interact(PlayerController player) => Shown?.Invoke(Message);
+        public override void Interact(PlayerController player) => Shown?.Invoke(MessageProvider != null ? MessageProvider() : Message);
     }
 }

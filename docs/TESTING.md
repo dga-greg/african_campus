@@ -4,9 +4,9 @@
 
 | Suite | Where | Runs | Covers |
 |---|---|---|---|
-| Core/EditMode | `CampusLifeAfrica/Assets/CampusLife/Tests/EditMode` | `dotnet test tools/CoreTests/CoreTests.csproj` **and** Unity Test Runner (EditMode) | Clock & pausing, money formatting, wallet ledger (duplicates, overdrafts, tampering), atomic purchases, inventory, JSON serializer (precision, escaping, malformed input), save service (round-trip, checksum, backup recovery, too-new saves, migrations, atomic file writes, unique transaction ids across reloads), dialogue engine and all Phase 1 content (validation, full orientation journey, alternative paths, kiosk purchases, memories), relationships, objectives, profile validation, movement/camera/interaction maths; **Phase 2:** roster, schedules (validity, determinism, variety, roles, weekdays, guard coverage, walking-time fit), campus simulation (travel, arrival, snapping, day/night density), queue, deterministic RNG, ambient dialogue and per-resident memory |
+| Core/EditMode | `CampusLifeAfrica/Assets/CampusLife/Tests/EditMode` | `dotnet test tools/CoreTests/CoreTests.csproj` **and** Unity Test Runner (EditMode) | Clock & pausing, money formatting, wallet ledger (duplicates, overdrafts, tampering), atomic purchases, inventory, JSON serializer (precision, escaping, malformed input), save service (round-trip, checksum, backup recovery, too-new saves, migrations, atomic file writes, unique transaction ids across reloads), dialogue engine and all Phase 1 content (validation, full orientation journey, alternative paths, kiosk purchases, memories), relationships, objectives, profile validation, movement/camera/interaction maths; **Phase 2:** roster, schedules (validity, determinism, variety, roles, weekdays, guard coverage, walking-time fit), campus simulation (travel, arrival, snapping, day/night density), queue, deterministic RNG, ambient dialogue and per-resident memory; **Phase 3:** grading/GPA, curriculum validity, question shuffling and hints, timetables, calendar, registration rules and prerequisites, attendance timing, study, assignments and late penalties, quiz/exam rules, results/CGPA/probation/resits, save v2 and migration, rest timing |
 | Unity compile check | `tools/UnityCompileCheck` | `dotnet build` | All runtime scripts + PlayMode tests against UnityEngine 2021.3 reference assemblies |
-| PlayMode smoke | `CampusLifeAfrica/Assets/CampusLife/Tests/PlayMode` | Unity Test Runner (PlayMode) only | New game spawn and allowance, walking and staying grounded, entering the library, climbing stairs to the mezzanine, exiting, talking to Mr. Darko (card, clock pause), save → load inside the library, sitting/standing, camera wall collision, kiosk purchase charging the wallet; **Phase 2:** NavMesh bake, residents appearing within limits, travellers making progress, interior/exterior unloading, resident memory, slot exclusivity, kiosk queue order |
+| PlayMode smoke | `CampusLifeAfrica/Assets/CampusLife/Tests/PlayMode` | Unity Test Runner (PlayMode) only | New game spawn and allowance, walking and staying grounded, entering the library, climbing stairs to the mezzanine, exiting, talking to Mr. Darko (card, clock pause), save → load inside the library, sitting/standing, camera wall collision, kiosk purchase charging the wallet; **Phase 2:** NavMesh bake, residents appearing within limits, travellers making progress, interior/exterior unloading, resident memory, slot exclusivity, kiosk queue order; **Phase 3:** attending a lecture in the hall end to end, studying in the library, resting until morning |
 
 CI (`.github/workflows/ci.yml`) runs the first two on every push.
 
@@ -39,3 +39,14 @@ Living campus (Phase 2) — turn on Settings → "Show living-campus stats":
 20. Inside the library, residents sit at tables and desks with books; when their schedule changes they walk out of the door.
 21. The guard patrols gate ↔ library; footballers run laps in the evening; the cleaner sweeps the plaza in the morning.
 22. Graphics quality Low/Medium/High changes how many residents have bodies (20/30/40) — check FPS stays on target.
+
+University (Phase 3):
+23. After orientation the objective says to register: Tab → Academics, toggle an elective, Register; errors appear if you untick to below 15 credits; timetable appears.
+24. Follow the guide arrow to the Lecture Theatre Complex, enter, read the timetable board in the lobby, go into the right hall and sit down within an hour of the lecture.
+25. "Wait for the lecture to start" skips time; the board shows the topic and the lecturer appears; take notes, answer the question, finish — time jumps to the end.
+26. Arrive 20 minutes late: attendance is "Late"; 31+ minutes: you cannot join.
+27. In the library, sit and study a topic: notes appear in Academics → Notes; preparation and hints increase. Work on an assignment; the score shows in Course progress.
+28. Week 3 lecture includes the four-question quiz.
+29. Rest at Unity Hall (night → 06:30 next day; day → +2 hours).
+30. Exam week: sit an exam in LT1, use a 50/50 hint; day 42: the results screen appears with GPA/CGPA; the Academics tab keeps the results.
+31. Load a save made with v0.2.0 (Phase 2): it loads, and you can register courses.

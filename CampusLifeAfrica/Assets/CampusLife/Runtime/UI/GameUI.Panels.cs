@@ -9,7 +9,7 @@ namespace CampusLife.Runtime.UI
 {
     public sealed partial class GameUI
     {
-        enum DashboardTab { Profile, Wallet, Inventory, People, Journal }
+        enum DashboardTab { Profile, Academics, Wallet, Inventory, People, Journal }
 
         DashboardTab _tab;
         Vector2 _dashScroll;
@@ -36,6 +36,11 @@ namespace CampusLife.Runtime.UI
             y += 58f;
 
             var view = new Rect(x, y, w, panel.yMax - y - 20f);
+            if (_tab == DashboardTab.Academics)
+            {
+                DrawAcademicsTab(view);
+                return;
+            }
             var lines = BuildDashboardLines();
             float contentH = 0f;
             foreach (var l in lines) contentH += LineHeight(l, w - 24f);
@@ -82,7 +87,9 @@ namespace CampusLife.Runtime.UI
                     int bgIndex = System.Array.IndexOf(CharacterOptions.Backgrounds, p.background);
                     lines.Add(L($"<b>{p.displayName}</b>  ({p.pronouns})", UiTheme.Heading));
                     lines.Add(L($"Programme: <b>{(program != null ? program.Name : p.programId)}</b> — {(program != null ? program.Faculty : "")}"));
-                    lines.Add(L($"Year 1 · Orientation week at Akwaaba Metropolitan University"));
+                    var phase = s.Academics.Phase(s.Clock.TotalMinutes);
+                    lines.Add(L($"Year {s.Academics.Data.year} · Semester {s.Academics.Data.semester} · {PhaseLabel(phase, s)}"));
+                    if (s.Academics.Results.Count > 0) lines.Add(L($"CGPA: <b>{s.Academics.Cgpa():0.00}</b> — {CampusLife.Core.Academics.GradingScale.ClassOfDegree(s.Academics.Cgpa())} standing"));
                     lines.Add(L($"Hometown: {p.hometown}"));
                     lines.Add(L($"Ambition: {p.ambition}"));
                     lines.Add(L($"Background: {(bgIndex >= 0 ? CharacterOptions.BackgroundNames[bgIndex] : p.background)}"));
@@ -142,7 +149,9 @@ namespace CampusLife.Runtime.UI
                         string mark = done ? "<color=#7BE0A0><b>Done</b></color>" : active ? "<color=#F9C21A><b>Current</b></color>" : "<color=#9A9A9A>Upcoming</color>";
                         lines.Add(L($"{mark}   {(done || active ? o.Text : "???")}"));
                     }
-                    if (current == null) lines.Add(L("Orientation complete! Explore the campus freely. More of AMU opens up in upcoming updates.", UiTheme.Dim));
+                    var academic = s.Academics.NextTask(s.Clock.TotalMinutes);
+                    if (current == null && academic != null) lines.Add(L($"<color=#F9C21A><b>Academics</b></color>   {academic.Text}"));
+                    else if (current == null) lines.Add(L("Orientation complete! Follow your timetable and enjoy campus life.", UiTheme.Dim));
                     break;
                 }
             }

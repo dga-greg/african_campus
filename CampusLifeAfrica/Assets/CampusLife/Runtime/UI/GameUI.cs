@@ -151,6 +151,7 @@ namespace CampusLife.Runtime.UI
                 case Overlay.None:
                     DrawHud(dialogue);
                     if (dialogue) DrawDialogue();
+                    else if (Game.Academic.HasSeatOptions) DrawSeatPanel();
                     else if (Game.Input.TouchControlsEnabled && !Game.Areas.IsTransitioning) DrawTouchControls();
                     break;
                 case Overlay.Pause: DrawPauseMenu(); break;
@@ -159,6 +160,8 @@ namespace CampusLife.Runtime.UI
                 case Overlay.Load: DrawLoadPanel(); break;
                 case Overlay.Dashboard: DrawDashboard(); break;
                 case Overlay.Map: DrawMap(); break;
+                case Overlay.Activity: DrawHud(true); DrawActivity(); break;
+                case Overlay.Results: DrawResults(Game.LatestResult, standalone: true); break;
             }
         }
 

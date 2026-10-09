@@ -47,6 +47,10 @@ namespace CampusLife.Runtime.Player
         /// <summary>Frame on which control was last re-enabled; the same key press must not also interact.</summary>
         public int ControlEnabledFrame { get; private set; } = -1;
         public bool IsSeated => _seat != null;
+        public SeatInteractable CurrentSeat => _seat;
+
+        public event System.Action<SeatInteractable> Seated;
+        public event System.Action<SeatInteractable> StoodUp;
 
         /// <summary>A position that is safe to save and restore (standing spot when seated).</summary>
         public Vector3 SafePosition => _seat != null ? _seat.StandPose.position : transform.position;
@@ -134,6 +138,7 @@ namespace CampusLife.Runtime.Player
             transform.SetPositionAndRotation(sit.position, Quaternion.Euler(0f, sit.eulerAngles.y, 0f));
             _heading = sit.eulerAngles.y;
             if (Animator != null) Animator.SetPose(CharacterPose.Sit, seat.SeatHeight);
+            Seated?.Invoke(seat);
         }
 
         public void StandUp()
@@ -146,6 +151,7 @@ namespace CampusLife.Runtime.Player
             _heading = stand.eulerAngles.y;
             _controller.enabled = true;
             if (Animator != null) Animator.SetPose(CharacterPose.Stand);
+            StoodUp?.Invoke(stand.GetComponentInParent<SeatInteractable>());
         }
 
         /// <summary>Moves the player instantly (area transitions, loading).</summary>

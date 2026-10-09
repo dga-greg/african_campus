@@ -49,6 +49,8 @@ namespace CampusLife.Runtime.World
             area.AddSpawn("start", root, new Vector3(0f, 0.05f, -83f), 0f);
             area.AddSpawn("library_front", root, new Vector3(0f, 0.95f, 40.4f), 180f);
             area.AddSpawn("creator", root, new Vector3(-3f, 0.05f, -20f), 160f);
+            area.AddSpawn("lecture_front", root, new Vector3(27.1f, 0.05f, 5f), 270f);
+            area.AddSpawn("hostel_front", root, new Vector3(-29.2f, 0.05f, 20f), 90f);
 
             var esi = ctx.Npcs.Spawn(Ids.NpcEsi, root, new Vector3(3.5f, 0f, -77.5f), 205f);
             kit.Box(esi.Animator.Visual.Props, "Clipboard", new Vector3(0f, 0f, 0.05f), new Vector3(0.22f, 0.3f, 0.02f), Palette.WoodLight, collider: false);
@@ -199,7 +201,7 @@ namespace CampusLife.Runtime.World
             }
             WorldKit.Text(s, "LECTURE THEATRE COMPLEX", c + new Vector3(-13.1f, 10.6f, 0f), 0.75f, Palette.SignText, -90f);
             occupied.Add(R(c.x, c.z, 32f, 40f));
-            loc.AddMapFeature("Lecture Theatre Complex", R(c.x, c.z, 26f, 34f), MapFeatureKind.Building);
+            loc.AddMapFeature("Lecture Theatre Complex", R(c.x, c.z, 26f, 34f), MapFeatureKind.EnterableBuilding);
         }
 
         static void BuildHostel(WorldKit kit, Transform s, WorldLocations loc, List<Rect> occupied)
@@ -543,11 +545,26 @@ namespace CampusLife.Runtime.World
             slots.SetAccess(PlaceIds.SweepRoute, new Vector3(0f, 0f, -28f));
 
             // Buildings residents walk in and out of (their interiors arrive in later phases).
-            BuildDoorway(kit, s, new Vector3(-30.93f, 0f, 20f), 90f, Palette.DarkWood, "UNITY HALL",
-                "Read the hall notice", "Unity Hall — residents only. Freshers' room allocation is handled by the hall office during Week 1.");
+            var hall = BuildDoorway(kit, s, new Vector3(-30.93f, 0f, 20f), 90f, Palette.DarkWood, "UNITY HALL",
+                "Read the hall notice", "Unity Hall — residents only. Your room is on the second floor. Quiet hours run from 22:00 to 06:00.");
+            var rest = new GameObject("RestInRoom").AddComponent<RestInteractable>();
+            rest.transform.SetParent(hall, false);
+            rest.transform.localPosition = new Vector3(0f, 1f, 0.6f);
+            rest.Range = 2.4f;
             slots.SetAccess(PlaceIds.Hostel, new Vector3(-29.4f, 0f, 20f));
-            BuildDoorway(kit, s, new Vector3(28.94f, 0f, 5f), -90f, Palette.Glass, "LECTURE HALLS",
-                "Read the notice board", "Lecture Theatre Complex — first-year lectures begin after course registration. Timetables will be posted here.");
+
+            var lectures = BuildDoorway(kit, s, new Vector3(28.94f, 0f, 5f), -90f, Palette.Glass, "LECTURE HALLS",
+                "Read the notice board", "Lecture Theatre Complex — lectures follow your timetable. Check it on the student portal (Tab → Academics).");
+            var door = new GameObject("Door_Lectures").AddComponent<DoorInteractable>();
+            door.transform.SetParent(lectures, false);
+            door.transform.localPosition = new Vector3(0f, 1f, 0.6f);
+            door.TargetAreaId = LectureInteriorBuilder.AreaId;
+            door.TargetSpawnId = "entrance";
+            door.Label = "Enter the Lecture Theatre Complex";
+            door.Range = 2.4f;
+            var lectureDoor = lectures.TransformPoint(new Vector3(0f, 1f, 0.6f));
+            ctx.Locations.RegisterPortal(AreaId, LectureInteriorBuilder.AreaId, lectureDoor);
+            LectureDoor = lectureDoor;
             slots.SetAccess(PlaceIds.LectureComplex, new Vector3(27.4f, 0f, 5f));
 
             slots.SetAccess(PlaceIds.OffCampus, new Vector3(0f, 0f, -86.6f));
@@ -555,10 +572,13 @@ namespace CampusLife.Runtime.World
         }
 
         /// <summary>
-        /// A closed double door on a facade (local +Z = outward) with a readable
-        /// notice beside it, so the doorway explains itself instead of looking like a broken door.
+        /// A double door on a facade (local +Z = outward) with a readable notice
+        /// beside it. The caller adds what the door does (enter, rest).
         /// </summary>
-        static void BuildDoorway(WorldKit kit, Transform s, Vector3 wallPoint, float yaw, Color door, string sign, string label, string notice)
+        /// <summary>Outdoor point in front of the Lecture Theatre Complex doors.</summary>
+        public static Vector3 LectureDoor { get; private set; }
+
+        static Transform BuildDoorway(WorldKit kit, Transform s, Vector3 wallPoint, float yaw, Color door, string sign, string label, string notice)
         {
             var g = WorldKit.Group("Doorway_" + sign, s, wallPoint, yaw);
             kit.Box(g, "Frame", new Vector3(0f, 1.45f, 0.03f), new Vector3(2.8f, 2.9f, 0.08f), Palette.Gold, collider: false);
@@ -575,6 +595,7 @@ namespace CampusLife.Runtime.World
             info.Label = label;
             info.Message = notice;
             info.Range = 2.2f;
+            return g;
         }
     }
 }

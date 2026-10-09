@@ -13,6 +13,7 @@ Campus Life Africa is split so that the rules of the game can be tested without 
 │  ├─ Npc: NpcFactory · NpcCharacter · ResidentPopulation · ResidentAgent · PlaceSlots│
 │  │       NavMeshBaker · SpeechBubble        Dialogue: DialogueController           │
 │  ├─ Lighting: DayNightCycle                 Rendering: MaterialLibrary, profiles   │
+│  ├─ Academics: AcademicController (seat options, lecture/exam/assignment flows)   │
 │  ├─ Infrastructure: SaveSystem (file / browser storage) · SettingsStore            │
 │  └─ UI: GameUI (menus, creator, HUD, dialogue, dashboard, map, touch controls)     │
 └───────────────────────────────────────┬────────────────────────────────────────────┘
@@ -25,6 +26,7 @@ Campus Life Africa is split so that the rules of the game can be tested without 
 │ Save/SaveGame, SaveService, SaveMigrator, storage · Serialization/FieldJson        │
 │ Simulation/MotionMath, CameraOrbit, InteractionScoring · Content/Phase1/2Content   │
 │ Npcs/CampusSimulation, ScheduleGenerator, PlaceCatalog, SlotQueue, Deterministic…  │
+│ Academics/AcademicRecord, Calendar, TimetableBuilder, GradingScale, CourseCatalog  │
 └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

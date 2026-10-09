@@ -18,8 +18,22 @@ namespace CampusLife.Core.Save
         public SaveMigrator(int targetVersion = SaveGame.CurrentVersion)
         {
             TargetVersion = targetVersion;
-            // Register real migrations here as the format evolves, e.g.
-            // Register(1, root => { root["newField"] = ...; });
+            if (targetVersion >= 2)
+            {
+                // v1 → v2: academics arrived in Phase 3. A v1 player is still in
+                // their first semester, which began on day 0.
+                Register(1, root =>
+                {
+                    if (!root.ContainsKey("academic"))
+                        root["academic"] = new Dictionary<string, object>
+                        {
+                            ["year"] = JsonNumber.Of(1),
+                            ["semester"] = JsonNumber.Of(1),
+                            ["semesterStartDay"] = JsonNumber.Of(0),
+                            ["registered"] = false,
+                        };
+                });
+            }
         }
 
         /// <summary>Registers the step that upgrades <paramref name="fromVersion"/> to fromVersion + 1.</summary>

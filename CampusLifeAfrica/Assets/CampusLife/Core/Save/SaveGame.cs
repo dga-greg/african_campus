@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using CampusLife.Core.Academics;
 using CampusLife.Core.Economy;
 using CampusLife.Core.Player;
 using CampusLife.Core.Social;
@@ -27,7 +28,7 @@ namespace CampusLife.Core.Save
     [Serializable]
     public class SaveGame
     {
-        public const int CurrentVersion = 1;
+        public const int CurrentVersion = 2;
 
         public int version = CurrentVersion;
         public string saveId;
@@ -43,6 +44,8 @@ namespace CampusLife.Core.Save
         public List<string> flags = new List<string>();
         public List<RelationshipData> relationships = new List<RelationshipData>();
         public LocationData location = new LocationData();
+        /// <summary>Added in save version 2 (Phase 3).</summary>
+        public AcademicData academic = new AcademicData();
     }
 
     /// <summary>Wrapper written to storage: format marker, version and checksum around the payload.</summary>

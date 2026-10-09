@@ -54,7 +54,7 @@ namespace CampusLife.Runtime.UI
             y += 62f;
             if (GameBootstrap.CanQuitApplication && Button(new Rect(x, y, w, 52f), "Quit")) Application.Quit();
 
-            GUI.Label(new Rect(x, _h - 60f, w, 44f), $"v{GameBootstrap.GameVersion} · Phase 2 living campus build · Original fictional university", UiTheme.Dim);
+            GUI.Label(new Rect(x, _h - 60f, w, 44f), $"v{GameBootstrap.GameVersion} · Phase 3 university build · Original fictional university", UiTheme.Dim);
         }
 
         // ------------------------------------------------- character creator

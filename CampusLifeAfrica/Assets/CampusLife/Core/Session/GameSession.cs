@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using CampusLife.Core.Academics;
 using CampusLife.Core.Economy;
 using CampusLife.Core.Narrative;
 using CampusLife.Core.Player;
@@ -29,6 +30,7 @@ namespace CampusLife.Core.Session
         public NarrativeFlags Flags { get; private set; }
         public RelationshipBook Relationships { get; private set; }
         public ItemCatalog Items { get; }
+        public AcademicRecord Academics { get; private set; }
         public LocationData Location { get; set; } = new LocationData();
         public double PlayTimeSeconds { get; set; }
 
@@ -36,6 +38,9 @@ namespace CampusLife.Core.Session
         {
             Items = items ?? throw new ArgumentNullException(nameof(items));
         }
+
+        /// <summary>Catalogue used for academics when none is supplied (all Year 1 courses).</summary>
+        public static Func<CourseCatalog> DefaultCourses = () => Content.Phase3Content.Catalog;
 
         public static GameSession NewGame(PlayerProfileData profile, ItemCatalog items, string saveId)
         {
@@ -56,6 +61,7 @@ namespace CampusLife.Core.Session
             };
             session.Wallet.Credit("allowance:y1s1:arrival", StartingAllowancePesewas, "allowance",
                 "Family allowance for the first weeks of semester", session.Clock.TotalMinutes);
+            session.Academics = new AcademicRecord(new AcademicData(), DefaultCourses(), profile.programId);
             return session;
         }
 
@@ -89,6 +95,7 @@ namespace CampusLife.Core.Session
                     areaId = Location.areaId, x = Location.x, y = Location.y, z = Location.z,
                     yaw = Location.yaw, spawnId = Location.spawnId,
                 },
+                academic = Academics.Data,
             };
         }
 
@@ -116,6 +123,10 @@ namespace CampusLife.Core.Session
                 PlayTimeSeconds = Math.Max(0, save.playTimeSeconds),
                 _transactionSequence = Math.Max(0, save.transactionSequence),
             };
+            session.Academics = new AcademicRecord(save.academic ?? new AcademicData(), DefaultCourses(), profile.programId);
+            foreach (var code in session.Academics.RegisteredCourses)
+                if (!session.Academics.Catalog.TryGet(code, out _))
+                    throw new InvalidOperationException($"Save references unknown course '{code}'.");
             // Never hand out an id that already exists in the ledger, even if the counter was damaged.
             foreach (var t in session.Wallet.Ledger)
             {

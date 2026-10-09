@@ -195,6 +195,7 @@ namespace CampusLife.Runtime.World
             // Chairs face a table, so the player stands up behind the chair.
             var seat = SeatInteractable.Create(g, new Vector3(0f, 0f, 0.02f), 0f, 0.48f, standOffset: -0.82f);
             seat.Range = 1.4f;
+            seat.RoomId = "library";
             return seat;
         }
     }

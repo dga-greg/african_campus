@@ -1,4 +1,5 @@
 using System;
+using CampusLife.Core.Academics;
 using CampusLife.Core.Content;
 using CampusLife.Core.Economy;
 using CampusLife.Core.Narrative;
@@ -7,6 +8,7 @@ using CampusLife.Core.Time;
 using CampusLife.Core.Player;
 using CampusLife.Core.Save;
 using CampusLife.Core.Session;
+using CampusLife.Runtime.Academics;
 using CampusLife.Runtime.CameraSystem;
 using CampusLife.Runtime.Characters;
 using CampusLife.Runtime.Dialogue;
@@ -24,7 +26,7 @@ namespace CampusLife.Runtime
 {
     public enum GameFlowState { MainMenu, CharacterCreation, Playing }
 
-    public enum Overlay { None, Pause, Dashboard, Map, Settings, Save, Load }
+    public enum Overlay { None, Pause, Dashboard, Map, Settings, Save, Load, Activity, Results }
 
     /// <summary>
     /// Composition root. Creates services, builds the world, spawns the
@@ -37,7 +39,7 @@ namespace CampusLife.Runtime
     [DefaultExecutionOrder(50)]
     public sealed class GameBootstrap : MonoBehaviour
     {
-        public const string GameVersion = "0.2.0";
+        public const string GameVersion = "0.3.0";
         const float AutosaveIntervalSeconds = 180f;
         const string MenuPauseReason = "menu";
 
@@ -62,6 +64,9 @@ namespace CampusLife.Runtime
         public GuideBeacon Beacon { get; private set; }
         public ResidentPopulation Residents { get; private set; }
         public PlaceSlots Slots { get; private set; }
+        public AcademicController Academic { get; private set; }
+        /// <summary>Most recently released semester result (shown by the results overlay).</summary>
+        public SemesterResult LatestResult { get; private set; }
 
         public GameSession Session { get; private set; }
         public GameFlowState State { get; private set; } = GameFlowState.MainMenu;
@@ -128,6 +133,7 @@ namespace CampusLife.Runtime
 
             BuildWorld();
             InitialiseResidents();
+            InitialiseAcademics();
             Beacon = GuideBeacon.Create(_materials, transform);
             InfoInteractable.Shown += UI.Toast;
 
@@ -139,6 +145,7 @@ namespace CampusLife.Runtime
         void OnDestroy()
         {
             if (UI != null) InfoInteractable.Shown -= UI.Toast;
+            RestInteractable.RestRequested -= Rest;
             if (Instance == this) Instance = null;
         }
 
@@ -213,6 +220,16 @@ namespace CampusLife.Runtime
             // Interior locations are known before the interior is first built, so
             // objectives inside it can be guided to from outside.
             Locations.Register(Ids.LocationLibraryDesk, LibraryInteriorBuilder.AreaId, LibraryInteriorBuilder.DeskNpcPosition, "Library front desk");
+            foreach (var room in LectureInteriorBuilder.Rooms)
+                Locations.Register(room, LectureInteriorBuilder.AreaId, LectureInteriorBuilder.RoomEntrance(room), "Lecture Theatre " + room);
+            Areas.Register(new CampusArea
+            {
+                Id = LectureInteriorBuilder.AreaId,
+                DisplayName = "Lecture Theatre Complex",
+                IsInterior = true,
+                DefaultSpawn = "entrance",
+                Builder = a => LectureInteriorBuilder.Build(a, _buildContext),
+            });
             Areas.Register(new CampusArea
             {
                 Id = LibraryInteriorBuilder.AreaId,
@@ -225,7 +242,7 @@ namespace CampusLife.Runtime
 
         void InitialiseResidents()
         {
-            var places = PlaceIds.CreateCatalog(LibraryInteriorBuilder.AreaId);
+            var places = PlaceIds.CreateCatalog(LibraryInteriorBuilder.AreaId, LectureInteriorBuilder.AreaId);
             foreach (var place in places.All)
             {
                 if (Slots.TryGetAccess(place.Id, out var p)) places.SetAccessPoint(place.Id, p.x, p.z);
@@ -240,6 +257,51 @@ namespace CampusLife.Runtime
             Residents.Player = Player.transform;
             Residents.PlayerSpeed = () => Player.CurrentSpeed;
             Residents.RunThreshold = () => Player.Locomotion.WalkSpeed + 0.6f;
+        }
+
+        void InitialiseAcademics()
+        {
+            Academic = gameObject.AddComponent<AcademicController>();
+            Academic.Session = () => Session;
+            Academic.Player = Player;
+            Academic.Materials = _materials;
+            Academic.Toast = UI.Toast;
+            Academic.Autosave = Autosave;
+            Academic.ActivityChanged += open => OpenOverlay(open ? Overlay.Activity : Overlay.None);
+            Academic.ResultsReleased += result =>
+            {
+                LatestResult = result;
+                if (Overlay == Overlay.None) OpenOverlay(Overlay.Results);
+                else UI.Toast("Your semester results are out — see Tab → Academics.");
+            };
+            RestInteractable.Now = () => Session != null ? Session.Clock.TotalMinutes : 0;
+            RestInteractable.RestRequested += Rest;
+        }
+
+        /// <summary>Sleep until 06:30 at night, or rest two hours by day, in your Unity Hall room.</summary>
+        void Rest()
+        {
+            if (Session == null || State != GameFlowState.Playing || Areas.IsTransitioning || _resting) return;
+            StartCoroutine(RestRoutine());
+        }
+
+        bool _resting;
+
+        System.Collections.IEnumerator RestRoutine()
+        {
+            _resting = true;
+            Player.ControlEnabled = false;
+            var clock = Session.Clock;
+            bool night = RestRules.IsNightSleep(clock.TotalMinutes);
+            yield return UI.FadeOut(0.6f, night ? "Sleeping…" : "Resting…");
+            clock.AdvanceMinutes(RestRules.WakeTime(clock.TotalMinutes) - clock.TotalMinutes);
+            Areas.PlaceAtSpawn(CampusExteriorBuilder.AreaId, "hostel_front");
+            yield return new WaitForSecondsRealtime(0.4f);
+            yield return UI.FadeIn(0.6f);
+            Player.ControlEnabled = true;
+            _resting = false;
+            UI.Toast(night ? $"Good morning! It's {clock.Format()}." : $"You feel refreshed. It's {clock.Format()}.");
+            _autosavePending = true;
         }
 
         /// <summary>Rebuilds the player's modular character from appearance data.</summary>
@@ -458,6 +520,11 @@ namespace CampusLife.Runtime
         void HandleGameplayShortcuts()
         {
             if (Dialogue.IsActive || Dialogue.LastEndedFrame == Time.frameCount || Areas.IsTransitioning) return;
+            if (Overlay == Overlay.Activity)
+            {
+                if (Input.PausePressed) Academic.Cancel();
+                return;
+            }
             if (Input.PausePressed)
             {
                 if (Overlay == Overlay.None) OpenOverlay(Overlay.Pause);
@@ -472,15 +539,34 @@ namespace CampusLife.Runtime
 
         void UpdateCursor(bool playing)
         {
-            bool lockCursor = playing && Overlay == Overlay.None && !Dialogue.IsActive && !Input.TouchControlsEnabled;
+            bool lockCursor = playing && Overlay == Overlay.None && !Dialogue.IsActive && !Input.TouchControlsEnabled && !Academic.HasSeatOptions;
             Input.MouseLookEnabled = lockCursor;
             var mode = lockCursor ? CursorLockMode.Locked : CursorLockMode.None;
             if (Cursor.lockState != mode) Cursor.lockState = mode;
             Cursor.visible = !lockCursor;
         }
 
-        /// <summary>Current objective and where the guide marker points in this area.</summary>
-        public ObjectiveDefinition CurrentObjective => Session != null ? Objectives.Current(Session.Flags) : null;
+        /// <summary>
+        /// Current objective: orientation story first, then the next academic task
+        /// (registration, the next lecture or exam, results).
+        /// </summary>
+        public ObjectiveDefinition CurrentObjective
+        {
+            get
+            {
+                if (Session == null) return null;
+                var story = Objectives.Current(Session.Flags);
+                if (story != null) return story;
+                var task = Session.Academics.NextTask(Session.Clock.TotalMinutes);
+                if (task == null) return null;
+                string target = task.Room == "library" ? Ids.LocationLibraryDesk : task.Room;
+                if (_academicObjective == null || _academicObjective.Text != task.Text || _academicObjective.TargetLocationId != target)
+                    _academicObjective = new ObjectiveDefinition("academic", task.Text, "academic_task_done", target);
+                return _academicObjective;
+            }
+        }
+
+        ObjectiveDefinition _academicObjective;
 
         public bool TryGetGuideTarget(out Vector3 position)
         {
