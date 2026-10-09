@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Runs the engine-independent CampusLife.Core code and its NUnit EditMode
+    tests outside Unity. The same test files run inside the Unity Test Runner.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NUnit2005;NUnit2006;NUnit2007;NUnit2015;NUnit2031;NUnit2003;NUnit2004</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../CampusLifeAfrica/Assets/CampusLife/Core/**/*.cs" />
+    <Compile Include="../../CampusLifeAfrica/Assets/CampusLife/Tests/EditMode/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+  </ItemGroup>
+</Project>

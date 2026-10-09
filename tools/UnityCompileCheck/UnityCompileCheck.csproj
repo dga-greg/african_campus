@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Compile-only check of the Unity runtime scripts against UnityEngine
+    reference assemblies (UnityEngine.Modules 2021.3 from NuGet). This catches
+    API and type errors without a Unity Editor; it cannot run the game.
+    Code paths behind ENABLE_INPUT_SYSTEM (Input System package) and the
+    Editor folder are not covered because those assemblies are not on NuGet.
+    PlayMode tests are compiled against small attribute stubs in Stubs/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DefineConstants>$(DefineConstants);UNITY_2021_3_OR_NEWER;ENABLE_LEGACY_INPUT_MANAGER;UNITY_STANDALONE</DefineConstants>
+    <OutputType>Library</OutputType>
+    <NoWarn>$(NoWarn);CS0649</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../CampusLifeAfrica/Assets/CampusLife/Core/**/*.cs" />
+    <Compile Include="../../CampusLifeAfrica/Assets/CampusLife/Runtime/**/*.cs" />
+    <Compile Include="../../CampusLifeAfrica/Assets/CampusLife/Tests/PlayMode/**/*.cs" />
+    <Compile Include="Stubs/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="UnityEngine.Modules" Version="2021.3.33" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+  </ItemGroup>
+</Project>

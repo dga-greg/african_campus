@@ -1,0 +1,32 @@
+# Unity
+CampusLifeAfrica/[Ll]ibrary/
+CampusLifeAfrica/[Tt]emp/
+CampusLifeAfrica/[Oo]bj/
+CampusLifeAfrica/[Bb]uild/
+CampusLifeAfrica/[Bb]uilds/
+CampusLifeAfrica/[Ll]ogs/
+CampusLifeAfrica/[Uu]ser[Ss]ettings/
+CampusLifeAfrica/MemoryCaptures/
+CampusLifeAfrica/*.csproj
+CampusLifeAfrica/*.sln
+CampusLifeAfrica/*.slnx
+CampusLifeAfrica/.vs/
+CampusLifeAfrica/.idea/
+*.pidb
+*.booproj
+*.suo
+*.user
+*.userprefs
+*.unityproj
+*.apk
+*.aab
+crashlytics-build.properties
+
+# .NET tooling
+tools/**/bin/
+tools/**/obj/
+TestResults/
+
+# OS
+.DS_Store
+Thumbs.db

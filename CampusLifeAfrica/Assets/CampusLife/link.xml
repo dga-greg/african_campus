@@ -1,0 +1,5 @@
+<!-- Save data is serialized by reflection over public fields; keep the core
+     assembly intact under IL2CPP managed code stripping (WebGL, iOS, Android). -->
+<linker>
+  <assembly fullname="CampusLife.Core" preserve="all" />
+</linker>

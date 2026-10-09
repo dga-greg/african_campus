@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core-and-compile:
+    name: Core tests + Unity API compile check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Core unit tests (NUnit, engine-independent)
+        run: dotnet test tools/CoreTests/CoreTests.csproj --logger "console;verbosity=normal"
+      - name: Compile runtime scripts against UnityEngine reference assemblies
+        run: dotnet build tools/UnityCompileCheck/UnityCompileCheck.csproj
