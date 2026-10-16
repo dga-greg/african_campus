@@ -1,0 +1,31 @@
+name: Family Heritage
+
+on:
+  push:
+    paths: ['family-heritage/**', '.github/workflows/family-heritage.yml']
+  pull_request:
+    paths: ['family-heritage/**', '.github/workflows/family-heritage.yml']
+
+defaults:
+  run:
+    working-directory: family-heritage
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # npm 10's arborist crashes on this workspace layout; npm 11 installs it cleanly.
+      - run: npm install -g npm@11
+      - run: npm ci
+      - run: npm run build:contracts
+      - run: npm test -w @fh/contracts
+      - run: npm run typecheck -w backend
+      - name: Backend tests (MongoDB replica set via mongodb-memory-server)
+        run: npm test -w backend
+      - run: npm test -w frontend
+      - run: npm run build -w backend
+      - run: npm run build -w frontend

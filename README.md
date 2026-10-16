@@ -61,3 +61,7 @@ docs/                             Architecture, roadmap, phase notes, testing, p
 ## Content and licensing
 
 All code, characters, names, dialogue, the university and its buildings are original and fictional. Geometry and UI textures are generated procedurally at runtime; the project contains no third-party art, audio or fonts beyond Unity's built-in runtime font. The game has no loot boxes, gambling or pay-to-win mechanics, and its core loop works offline without any AI service.
+
+## Also in this repository
+
+[`family-heritage/`](family-heritage/README.md) — a separate Family Tree & Generational History web application (Angular + Node.js + MongoDB). It has its own documentation, tests and CI workflow.
